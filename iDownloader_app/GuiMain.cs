@@ -1,4 +1,5 @@
 using Microsoft.Maui.Controls;
+using System;
 
 namespace IDownloader
 {
@@ -7,15 +8,20 @@ namespace IDownloader
     /// </summary>
     public class GuiMain : TabbedPage
     {
-        // Declare the Entry control at the class level so we can access it from anywhere in this class
+        // Shared static variable so DownloaderEngine can read it directly
+        public static string SharedUrl { get; set; } = string.Empty;
+
         private Entry _urlEntry;
         private ProgressBar _progressBar;
+        
+        // Instance of the downloader engine
+        private readonly DownloaderEngine _downloaderEngine = new DownloaderEngine();
 
         public GuiMain()
         {
             Title = "IDownloader";
 
-            // 1. Downloads Tab (Core UI for managing tasks)
+            // 1. Downloads Tab
             _urlEntry = new Entry 
             { 
                 Placeholder = "Paste download URL (e.g. .ipa file)...",
@@ -37,7 +43,7 @@ namespace IDownloader
                 CornerRadius = 10
             };
 
-            // Hook up the button click event
+            // Hook up click event
             downloadButton.Clicked += OnDownloadButtonClicked;
 
             var downloadsPage = new ContentPage
@@ -58,9 +64,9 @@ namespace IDownloader
                             TextColor = Colors.White,
                             HorizontalTextAlignment = TextAlignment.Center 
                         },
-                        _urlEntry,         // Added text input to the layout
-                        downloadButton,    // Added button with click event
-                        _progressBar       // Added progress bar
+                        _urlEntry,
+                        downloadButton,
+                        _progressBar
                     }
                 }
             };
@@ -107,22 +113,23 @@ namespace IDownloader
         }
 
         /// <summary>
-        /// Event handler triggered when the user clicks the "Start Download" button.
+        /// Event triggered when the download button is clicked.
         /// </summary>
-        private void OnDownloadButtonClicked(object sender, EventArgs e)
+        private async void OnDownloadButtonClicked(object sender, EventArgs e)
         {
-            // Get the text from the URL input field
-            string targetUrl = _urlEntry.Text;
+            // Save the entered URL into the shared static property
+            SharedUrl = _urlEntry.Text;
 
-            // Simple validation check
-            if (string.IsNullOrWhiteSpace(targetUrl))
-            {
-                // You could show an alert popup here later
+            if (string.IsNullOrWhiteSpace(SharedUrl))
                 return;
-            }
 
-            // At this point, `targetUrl` contains the link entered by the user!
-            // TODO: Pass `targetUrl` to your background downloader engine.
+            // Trigger the download engine
+            bool success = await _downloaderEngine.DownloadFileAsync();
+
+            if (success)
+            {
+                System.Diagnostics.Debug.WriteLine("[GUI] Download task completed successfully.");
+            }
         }
     }
 }
